@@ -48,15 +48,6 @@ export default class App extends Component {
         })
         .filter(i => !!i)
     };
-    console.log(
-      items
-        .map(item => {
-          const endItem = this.getRandomItemAfterItem(items, item);
-          if (endItem) return [item.id, endItem.id];
-          return undefined;
-        })
-        .filter(i => !!i)
-    );
   }
 
   getRandomItem = items => {
@@ -211,14 +202,9 @@ function Link({
   const [startId, endId] = timelineLink;
   const startItem = items.find(i => i.id === startId);
   if (startItem.group !== group.id) return null;
-  const startItemDimensions = getItemAbsoluteLocation(startId) || {
-    left: 0,
-    top: 0
-  };
-  const endItemDimensions = getItemAbsoluteLocation(endId) || {
-    left: 0,
-    top: 0
-  };
+  const startItemDimensions = getItemAbsoluteLocation(startId)
+  const endItemDimensions = getItemAbsoluteLocation(endId)
+  if(!startItemDimensions || !endItemDimensions) return null;
   let startLink = [startItemDimensions.left, startItemDimensions.top];
   let endLink = [endItemDimensions.left, endItemDimensions.top];
   //reverse top if switch links and
