@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import moment from "moment";
-import * as d3 from "d3";
+
+const ITEM_HEIGHT = 22.5;
 
 import Timeline, {
   RowItems,
@@ -235,7 +236,6 @@ function Link({
   }
   //reverse top if switch links and
   const isEndLinkBellowStart = endLink[1] - startLink[1] < 0;
-  const lineGenerator = d3.line();
   const startPoint = isEndLinkBellowStart
     ? [startPointX, Math.abs(endLink[1] - startLink[1])]
     : [startPointX, 0];
@@ -247,6 +247,7 @@ function Link({
     endLink[0] - startLink[0] > startPointX
       ? endLink[0] - startLink[0]
       : startPointX;
+  console.log(startPoint, endPoint);
   return (
     <svg
       style={{
@@ -256,14 +257,18 @@ function Link({
         top: isEndLinkBellowStart
           ? endLink[1] - startLink[1] + itemDimensions.top
           : itemDimensions.top,
-        height: Math.abs(endLink[1] - startLink[1]) || 2,
+        height: (Math.abs(endLink[1] - startLink[1]) || 4) + ITEM_HEIGHT,
         //handle case where endPoint is 0
         width: svgWidth,
         pointerEvents: "none"
       }}
     >
       <path
-        d={lineGenerator([startPoint, endPoint])}
+        //account
+        d={getPath(
+          { x: startPoint[0], y: startPoint[1] + ITEM_HEIGHT / 2 },
+          { x: endPoint[0], y: endPoint[1] + ITEM_HEIGHT / 2 }
+        )}
         stroke="red"
         strokeWidth="2"
         fill="none"
@@ -302,3 +307,42 @@ const Links = React.memo(
     );
   }
 );
+
+function calcNormCoordinates(start, end) {
+  let cpt1 = { x: 0, y: 0 };
+  let cpt2 = { x: 0, y: 0 };
+  let middle = 0;
+  middle = start.x + (end.x - start.x) / 2;
+  cpt1 = { x: middle, y: start.y };
+  cpt2 = { x: middle, y: end.y };
+  return { cpt1: cpt1, cpt2: cpt2 };
+}
+
+function calcSCoordinates(start, end) {
+  let cpt1 = {
+    x: start.x,
+    y: start.y
+  };
+  let halfY = (end.y - start.y) / 2;
+  let cpt2 = { x: cpt1.x, y: cpt1.y + halfY };
+  let cpt3 = { x: end.x, y: cpt2.y };
+  let cpt4 = { x: cpt3.x, y: cpt3.y + halfY };
+  return { cpt1: cpt1, cpt2: cpt2, cpt3: cpt3, cpt4: cpt4 };
+}
+
+function getPath(start, end) {
+  let coordinates = null;
+  if (start.x > end.x) {
+    coordinates = calcSCoordinates(start, end);
+    return `M${start.x} ${start.y}  ${coordinates.cpt1.x} ${
+      coordinates.cpt1.y
+    } ${coordinates.cpt2.x} ${coordinates.cpt2.y} ${coordinates.cpt3.x} ${
+      coordinates.cpt3.y
+    } ${coordinates.cpt4.x} ${coordinates.cpt4.y} ${end.x} ${end.y}`;
+  } else {
+    coordinates = calcNormCoordinates(start, end);
+    return `M${start.x} ${start.y}  ${coordinates.cpt1.x} ${
+      coordinates.cpt1.y
+    } ${coordinates.cpt2.x} ${coordinates.cpt2.y} ${end.x} ${end.y}`;
+  }
+}
