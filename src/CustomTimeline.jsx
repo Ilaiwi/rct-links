@@ -1,8 +1,5 @@
 import React, { Component } from "react";
 import moment from "moment";
-
-const ITEM_HEIGHT = 22.5;
-
 import Timeline, {
   RowItems,
   GroupRow,
@@ -10,6 +7,8 @@ import Timeline, {
 } from "react-calendar-timeline";
 import TimelineStateContext from "react-calendar-timeline/lib/lib/timeline/TimelineStateContext";
 import generateFakeData from "./generate-fake-data";
+
+const ITEM_HEIGHT = 22.5;
 
 var keys = {
   groupIdKey: "id",
