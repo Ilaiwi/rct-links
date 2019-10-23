@@ -7,6 +7,7 @@ import Timeline, {
   GroupRow,
   HelpersContext
 } from "react-calendar-timeline";
+import TimelineStateContext from 'react-calendar-timeline/lib/lib/timeline/TimelineStateContext'
 import generateFakeData from "./generate-fake-data";
 
 var keys = {
@@ -26,7 +27,7 @@ export default class App extends Component {
   constructor(props) {
     super(props);
 
-    const { groups, items } = generateFakeData(20, 100, 2);
+    const { groups, items } = generateFakeData(20, 200, 10);
     const defaultTimeStart = moment()
       .startOf("day")
       .toDate();
@@ -40,13 +41,14 @@ export default class App extends Component {
       items,
       defaultTimeStart,
       defaultTimeEnd,
-      timelineLinks: items
-        .map(item => {
-          const endItem = this.getRandomItemAfterItem(items, item);
-          if (endItem) return [item.id, endItem.id];
-          return undefined;
-        })
-        .filter(i => !!i)
+      timelineLinks: []
+      // timelineLinks: items
+      //   .map(item => {
+      //     const endItem = this.getRandomItemAfterItem(items, item);
+      //     if (endItem) return [item.id, endItem.id];
+      //     return undefined;
+      //   })
+      //   .filter(i => !!i)
     };
   }
 
@@ -181,6 +183,7 @@ export default class App extends Component {
                   group={group}
                   getLayerRootProps={getLayerRootProps}
                   items={itemsWithInteractions}
+                  getGroupDimensions={helpers.getGroupDimensions}
                 />
               </GroupRow>
             );
@@ -197,41 +200,56 @@ function Link({
   getItemAbsoluteLocation,
   getItemDimensions,
   group,
-  items
+  items,
+  getGroupDimensions
 }) {
+  const {getTimelineState} = React.useContext(TimelineStateContext);
+  const  {canvasWidth} = getTimelineState()
   const [startId, endId] = timelineLink;
   const startItem = items.find(i => i.id === startId);
   if (startItem.group !== group.id) return null;
-  const startItemDimensions = getItemAbsoluteLocation(startId)
-  const endItemDimensions = getItemAbsoluteLocation(endId)
-  if(!startItemDimensions || !endItemDimensions) return null;
-  let startLink = [startItemDimensions.left, startItemDimensions.top];
-  let endLink = [endItemDimensions.left, endItemDimensions.top];
+  const endItem = items.find(i => i.id === endId);
+  const startItemDimensions = getItemAbsoluteLocation(startId);
+  const endItemDimensions = getItemAbsoluteLocation(endId);
+  let startLink, endLink, itemDimensions;
+  if(!endItemDimensions){
+    const endItemGroup = endItem.group;
+    const groupDimension = getGroupDimensions(endItemGroup);
+    endLink = [canvasWidth, groupDimension.top];
+  }
+  else {
+    endLink = [endItemDimensions.left, endItemDimensions.top];
+  }
+  if (!startItemDimensions) {
+    const startItemGroup = startItem.group;
+    const groupDimension = getGroupDimensions(startItemGroup);
+    startLink = [0, groupDimension.top];
+    itemDimensions = { top: 0 };
+  } else {
+    startLink = [startItemDimensions.left, startItemDimensions.top];
+    itemDimensions = getItemDimensions(startId);
+  }
   //reverse top if switch links and
-  const isEndLinkBellowStart =
-    endItemDimensions.top - startItemDimensions.top < 0;
-  let itemLink = [startLink, endLink];
+  const isEndLinkBellowStart = endLink[1] - startLink[1] < 0;
   const lineGenerator = d3.line();
-  const [startLk, endLk] = itemLink;
   const startPoint = isEndLinkBellowStart
-    ? [0, Math.abs(endLk[1] - startLk[1])]
+    ? [0, Math.abs(endLink[1] - startLink[1])]
     : [0, 0];
   const endPoint = isEndLinkBellowStart
-    ? [endLk[0] - startLk[0], 0]
-    : [endLk[0] - startLk[0], Math.abs(endLk[1] - startLk[1])];
-  const itemDimensions = getItemDimensions(startId);
+    ? [endLink[0] - startLink[0], 0]
+    : [endLink[0] - startLink[0], Math.abs(endLink[1] - startLink[1])];
   return (
     <svg
       style={{
         position: "absolute",
-        left: startLk[0],
+        left: startLink[0],
         zIndex: 200,
         top: isEndLinkBellowStart
-          ? endItemDimensions.top - startItemDimensions.top + itemDimensions.top
+          ? endLink[1] - startLink[1] + itemDimensions.top
           : itemDimensions.top,
-        height: Math.abs(endLk[1] - startLk[1]) || 2,
+        height: Math.abs(endLink[1] - startLink[1]) || 2,
         //handle case where endPoint is 0
-        width: endLk[0] - startLk[0] || 2,
+        width: endLink[0] - startLink[0] || 2,
         pointerEvents: "none"
       }}
     >
@@ -252,7 +270,8 @@ const Links = React.memo(
     getItemDimensions,
     group,
     getLayerRootProps,
-    items
+    items,
+    getGroupDimensions
   }) => {
     return (
       <div {...getLayerRootProps()}>
@@ -266,6 +285,7 @@ const Links = React.memo(
               getItemDimensions={getItemDimensions}
               group={group}
               items={items}
+              getGroupDimensions={getGroupDimensions}
             />
           );
         })}

@@ -11,7 +11,7 @@
     "moment": "2.18.1",
     "randomcolor": "0.5.3",
     "react": "16.9.0",
-    "react-calendar-timeline": "0.27.9-gamma",
+    "react-calendar-timeline": "0.27.10-gamma",
     "react-dnd": "9.4.0",
     "react-dnd-html5-backend": "9.4.0",
     "react-dom": "16.9.0"
