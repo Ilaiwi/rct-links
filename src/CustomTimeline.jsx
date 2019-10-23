@@ -7,7 +7,7 @@ import Timeline, {
   GroupRow,
   HelpersContext
 } from "react-calendar-timeline";
-import TimelineStateContext from 'react-calendar-timeline/lib/lib/timeline/TimelineStateContext'
+import TimelineStateContext from "react-calendar-timeline/lib/lib/timeline/TimelineStateContext";
 import generateFakeData from "./generate-fake-data";
 
 var keys = {
@@ -203,41 +203,50 @@ function Link({
   items,
   getGroupDimensions
 }) {
-  const {getTimelineState} = React.useContext(TimelineStateContext);
-  const  {canvasWidth} = getTimelineState()
+  const { getTimelineState } = React.useContext(TimelineStateContext);
+  const { canvasWidth } = getTimelineState();
   const [startId, endId] = timelineLink;
   const startItem = items.find(i => i.id === startId);
   if (startItem.group !== group.id) return null;
   const endItem = items.find(i => i.id === endId);
   const startItemDimensions = getItemAbsoluteLocation(startId);
   const endItemDimensions = getItemAbsoluteLocation(endId);
-  let startLink, endLink, itemDimensions;
-  if(!endItemDimensions){
-    const endItemGroup = endItem.group;
-    const groupDimension = getGroupDimensions(endItemGroup);
-    endLink = [canvasWidth, groupDimension.top];
-  }
-  else {
-    endLink = [endItemDimensions.left, endItemDimensions.top];
-  }
+  let startLink, endLink, itemDimensions, startPointX;
   if (!startItemDimensions) {
     const startItemGroup = startItem.group;
     const groupDimension = getGroupDimensions(startItemGroup);
+    //if start point doens't exist then replace it with an end point at the end of the screen to show start point out of screen
     startLink = [0, groupDimension.top];
+    //item dimension is needed to decide the top of the absolute posion of the svg relative to the row
     itemDimensions = { top: 0 };
+    startPointX = 0;
   } else {
     startLink = [startItemDimensions.left, startItemDimensions.top];
     itemDimensions = getItemDimensions(startId);
+    startPointX = startItemDimensions.width;
+  }
+  if (!endItemDimensions) {
+    const endItemGroup = endItem.group;
+    const groupDimension = getGroupDimensions(endItemGroup);
+    //if end point doens't exist then replace it with an end point at the end of the screen to show end point out of screen
+    endLink = [canvasWidth, groupDimension.top];
+  } else {
+    endLink = [endItemDimensions.left, endItemDimensions.top];
   }
   //reverse top if switch links and
   const isEndLinkBellowStart = endLink[1] - startLink[1] < 0;
   const lineGenerator = d3.line();
   const startPoint = isEndLinkBellowStart
-    ? [0, Math.abs(endLink[1] - startLink[1])]
-    : [0, 0];
+    ? [startPointX, Math.abs(endLink[1] - startLink[1])]
+    : [startPointX, 0];
   const endPoint = isEndLinkBellowStart
     ? [endLink[0] - startLink[0], 0]
     : [endLink[0] - startLink[0], Math.abs(endLink[1] - startLink[1])];
+  //width of the svg should be atleast the width of the start item / needed when end time of the start item before start time of the end item
+  const svgWidth =
+    endLink[0] - startLink[0] > startPointX
+      ? endLink[0] - startLink[0]
+      : startPointX;
   return (
     <svg
       style={{
@@ -249,7 +258,7 @@ function Link({
           : itemDimensions.top,
         height: Math.abs(endLink[1] - startLink[1]) || 2,
         //handle case where endPoint is 0
-        width: endLink[0] - startLink[0] || 2,
+        width: svgWidth,
         pointerEvents: "none"
       }}
     >
