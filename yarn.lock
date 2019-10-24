@@ -5653,10 +5653,10 @@ mkdirp@0.5.1, "mkdirp@>=0.5 0", mkdirp@^0.5.0, mkdirp@^0.5.1, mkdirp@~0.5.0, mkd
   dependencies:
     minimist "0.0.8"
 
-moment@2.18.1:
-  version "2.18.1"
-  resolved "https://registry.yarnpkg.com/moment/-/moment-2.18.1.tgz#c36193dd3ce1c2eed2adb7c802dbbc77a81b1c0f"
-  integrity sha1-w2GT3Tzhwu7SrbfIAtu8d6gbHA8=
+moment@2.19.3:
+  version "2.19.3"
+  resolved "https://registry.yarnpkg.com/moment/-/moment-2.19.3.tgz#bdb99d270d6d7fda78cc0fbace855e27fe7da69f"
+  integrity sha1-vbmdJw1tf9p4zA+6zoVeJ/59pp8=
 
 ms@2.0.0:
   version "2.0.0"
@@ -6894,10 +6894,10 @@ rc@^1.0.1, rc@^1.1.6, rc@^1.1.7, rc@^1.2.7:
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
 
-react-calendar-timeline@0.27.11-gamma:
-  version "0.27.11-gamma"
-  resolved "https://registry.yarnpkg.com/react-calendar-timeline/-/react-calendar-timeline-0.27.11-gamma.tgz#25cedcd42479f05d768b6ed6eef15c0fcaf5c946"
-  integrity sha512-1tzr4lPXW7WpUo3RuDHzcjbuJqh8ijb7oV1hmjssolcE2ztbBHCXohpA2KXJ59G9828lTeJVAr/tH00YhQIafA==
+react-calendar-timeline@0.27.12-gamma:
+  version "0.27.12-gamma"
+  resolved "https://registry.yarnpkg.com/react-calendar-timeline/-/react-calendar-timeline-0.27.12-gamma.tgz#d57c67648bcab9a0d5b59b400cc2a5c389682a74"
+  integrity sha512-gjLWPeLWxAY72tK+GMXkpFmzPpiH+1x5waQTtbTnLrX2iZCe/MorfHQi7WG3q5V31Ck2Wc0HumQDX1xIbSQJDw==
   dependencies:
     classnames "^2.2.6"
     create-react-context "^0.2.2"
