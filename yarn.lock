@@ -6894,10 +6894,10 @@ rc@^1.0.1, rc@^1.1.6, rc@^1.1.7, rc@^1.2.7:
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
 
-react-calendar-timeline@0.27.10-gamma:
-  version "0.27.10-gamma"
-  resolved "https://registry.yarnpkg.com/react-calendar-timeline/-/react-calendar-timeline-0.27.10-gamma.tgz#ade74198bfc17ded7071b9f7c3909fd69bf935df"
-  integrity sha512-stKaB/g1lv1QB1xA28tohX4L0XVgmvkcbwErPval9e2TbVCoNQCTc8o0iigzJqJbqNb9PZ/xWWgVORUoG2sO0g==
+react-calendar-timeline@0.27.11-gamma:
+  version "0.27.11-gamma"
+  resolved "https://registry.yarnpkg.com/react-calendar-timeline/-/react-calendar-timeline-0.27.11-gamma.tgz#25cedcd42479f05d768b6ed6eef15c0fcaf5c946"
+  integrity sha512-1tzr4lPXW7WpUo3RuDHzcjbuJqh8ijb7oV1hmjssolcE2ztbBHCXohpA2KXJ59G9828lTeJVAr/tH00YhQIafA==
   dependencies:
     classnames "^2.2.6"
     create-react-context "^0.2.2"
