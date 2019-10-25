@@ -1,13 +1,15 @@
 import React, { Component } from "react";
 import moment from "moment";
-import * as d3 from "d3";
-
 import Timeline, {
   RowItems,
   GroupRow,
   HelpersContext
 } from "react-calendar-timeline";
+import TimelineStateContext from "react-calendar-timeline/lib/lib/timeline/TimelineStateContext";
 import generateFakeData from "./generate-fake-data";
+import { Spring } from "react-spring/renderprops";
+
+const ITEM_HEIGHT = 22.5;
 
 var keys = {
   groupIdKey: "id",
@@ -26,37 +28,23 @@ export default class App extends Component {
   constructor(props) {
     super(props);
 
-    const { groups, items } = generateFakeData(20, 100, 2);
-    const defaultTimeStart = moment()
+    const { groups, items } = generateFakeData(20, 200, 10);
+    const visibleTimeStart = moment()
       .startOf("day")
-      .toDate();
-    const defaultTimeEnd = moment()
+      .valueOf();
+    const visibleTimeEnd = moment()
       .startOf("day")
       .add(1, "day")
-      .toDate();
+      .valueOf();
 
     this.state = {
       groups,
       items,
-      defaultTimeStart,
-      defaultTimeEnd,
-      timelineLinks: items
-        .map(item => {
-          const endItem = this.getRandomItemAfterItem(items, item);
-          if (endItem) return [item.id, endItem.id];
-          return undefined;
-        })
-        .filter(i => !!i)
+      visibleTimeStart,
+      visibleTimeEnd,
+      timelineLinks: [],
+      scrolling: true
     };
-    console.log(
-      items
-        .map(item => {
-          const endItem = this.getRandomItemAfterItem(items, item);
-          if (endItem) return [item.id, endItem.id];
-          return undefined;
-        })
-        .filter(i => !!i)
-    );
   }
 
   getRandomItem = items => {
@@ -151,54 +139,97 @@ export default class App extends Component {
     this.tempItemId = undefined;
   };
 
+  handleTimeChange = (visibleTimeStart, visibleTimeEnd) => {
+    this.setState({
+      visibleTimeStart,
+      visibleTimeEnd,
+      scrolling: true
+    });
+  };
+
+  scrollToItem = itemId => {
+    const item = this.state.items.find(i => i.id === itemId);
+    if (item) {
+      const zoom = this.state.visibleTimeEnd - this.state.visibleTimeStart;
+      this.setState({
+        visibleTimeStart: item.start - zoom / 2,
+        visibleTimeEnd: item.start + zoom / 2,
+        scrolling: false
+      });
+    }
+  };
+
+  handleSelectChange = e => {
+    this.scrollToItem(e.target.value);
+  };
+
   render() {
-    const { groups, items, defaultTimeStart, defaultTimeEnd } = this.state;
+    const { groups, items, visibleTimeStart, visibleTimeEnd } = this.state;
 
     return (
       <React.Fragment>
-        <Timeline
-          groups={groups}
-          items={items}
-          keys={keys}
-          itemTouchSendsClick={false}
-          stackItems
-          itemHeightRatio={0.75}
-          showCursorLine
-          canMove={false}
-          canResize={false}
-          defaultTimeStart={defaultTimeStart}
-          defaultTimeEnd={defaultTimeEnd}
-          onItemMove={this.handleItemMove}
-          onItemResize={this.handleItemResize}
-          onItemSelect={this.handleItemSelect}
-          onCanvasClick={this.handleCanvasClick}
-          rowRenderer={({
-            rowData,
-            getLayerRootProps,
-            group,
-            itemsWithInteractions
-          }) => {
-            const helpers = React.useContext(HelpersContext);
-            const { timelineLinks } = rowData;
-            return (
-              <GroupRow>
-                <RowItems />
-                <Links
-                  timelineLinks={timelineLinks}
-                  getItemAbsoluteLocation={helpers.getItemAbsoluteLocation}
-                  getItemDimensions={helpers.getItemDimensions}
-                  group={group}
-                  getLayerRootProps={getLayerRootProps}
-                  items={itemsWithInteractions}
-                />
-              </GroupRow>
-            );
-          }}
-          rowData={{ timelineLinks: this.state.timelineLinks }}
-        />
+        <select onChange={this.handleSelectChange} style={{ marginBottom: 10 }}>
+          {this.state.items.map(item => (
+            <option key={item.id} value={item.id}>
+              {item.title}
+            </option>
+          ))}
+        </select>
+        <Spring
+          config={{ duration: 250 }}
+          to={{ visibleTimeStart, visibleTimeEnd }}
+          immediate={this.state.scrolling}
+        >
+          {props => (
+            <Timeline
+              groups={groups}
+              items={items}
+              keys={keys}
+              itemTouchSendsClick={false}
+              stackItems
+              itemHeightRatio={0.75}
+              showCursorLine
+              canMove={false}
+              canResize={false}
+              visibleTimeStart={props.visibleTimeStart}
+              visibleTimeEnd={props.visibleTimeEnd}
+              onItemMove={this.handleItemMove}
+              onItemResize={this.handleItemResize}
+              onItemSelect={this.handleItemSelect}
+              onCanvasClick={this.handleCanvasClick}
+              onTimeChange={this.handleTimeChange}
+              rowRenderer={RowRenderer}
+              rowData={{ timelineLinks: this.state.timelineLinks }}
+            />
+          )}
+        </Spring>
       </React.Fragment>
     );
   }
+}
+
+function RowRenderer({
+  rowData,
+  getLayerRootProps,
+  group,
+  itemsWithInteractions
+}) {
+  const helpers = React.useContext(HelpersContext);
+  const { timelineLinks } = rowData;
+  return (
+    <GroupRow>
+      <RowItems />
+      <Links
+        timelineLinks={timelineLinks}
+        getItemAbsoluteLocation={helpers.getItemAbsoluteLocation}
+        getItemDimensions={helpers.getItemDimensions}
+        group={group}
+        getLayerRootProps={getLayerRootProps}
+        items={itemsWithInteractions}
+        getGroupDimensions={helpers.getGroupDimensions}
+      />
+    </GroupRow>
+  );
 }
 
 function Link({
@@ -206,51 +237,73 @@ function Link({
   getItemAbsoluteLocation,
   getItemDimensions,
   group,
-  items
+  items,
+  getGroupDimensions
 }) {
+  const { getTimelineState } = React.useContext(TimelineStateContext);
+  const { canvasWidth } = getTimelineState();
   const [startId, endId] = timelineLink;
   const startItem = items.find(i => i.id === startId);
   if (startItem.group !== group.id) return null;
-  const startItemDimensions = getItemAbsoluteLocation(startId) || {
-    left: 0,
-    top: 0
-  };
-  const endItemDimensions = getItemAbsoluteLocation(endId) || {
-    left: 0,
-    top: 0
-  };
-  let startLink = [startItemDimensions.left, startItemDimensions.top];
-  let endLink = [endItemDimensions.left, endItemDimensions.top];
+  const endItem = items.find(i => i.id === endId);
+  const startItemDimensions = getItemAbsoluteLocation(startId);
+  const endItemDimensions = getItemAbsoluteLocation(endId);
+  let startLink, endLink, itemDimensions, startPointX;
+  if (!startItemDimensions) {
+    const startItemGroup = startItem.group;
+    const groupDimension = getGroupDimensions(startItemGroup);
+    //if start point doens't exist then replace it with an end point at the end of the screen to show start point out of screen
+    startLink = [0, groupDimension.top];
+    //item dimension is needed to decide the top of the absolute posion of the svg relative to the row
+    itemDimensions = { top: 0 };
+    startPointX = 0;
+  } else {
+    startLink = [startItemDimensions.left, startItemDimensions.top];
+    itemDimensions = getItemDimensions(startId);
+    startPointX = startItemDimensions.width;
+  }
+  if (!endItemDimensions) {
+    const endItemGroup = endItem.group;
+    const groupDimension = getGroupDimensions(endItemGroup);
+    //if end point doens't exist then replace it with an end point at the end of the screen to show end point out of screen
+    endLink = [canvasWidth, groupDimension.top];
+  } else {
+    endLink = [endItemDimensions.left, endItemDimensions.top];
+  }
   //reverse top if switch links and
-  const isEndLinkBellowStart =
-    endItemDimensions.top - startItemDimensions.top < 0;
-  let itemLink = [startLink, endLink];
-  const lineGenerator = d3.line();
-  const [startLk, endLk] = itemLink;
+  const isEndLinkBellowStart = endLink[1] - startLink[1] < 0;
   const startPoint = isEndLinkBellowStart
-    ? [0, Math.abs(endLk[1] - startLk[1])]
-    : [0, 0];
+    ? [startPointX, Math.abs(endLink[1] - startLink[1])]
+    : [startPointX, 0];
   const endPoint = isEndLinkBellowStart
-    ? [endLk[0] - startLk[0], 0]
-    : [endLk[0] - startLk[0], Math.abs(endLk[1] - startLk[1])];
-  const itemDimensions = getItemDimensions(startId);
+    ? [endLink[0] - startLink[0], 0]
+    : [endLink[0] - startLink[0], Math.abs(endLink[1] - startLink[1])];
+  //width of the svg should be atleast the width of the start item / needed when end time of the start item before start time of the end item
+  const svgWidth =
+    endLink[0] - startLink[0] > startPointX
+      ? endLink[0] - startLink[0]
+      : startPointX;
   return (
     <svg
       style={{
         position: "absolute",
-        left: startLk[0],
+        left: startLink[0],
         zIndex: 200,
         top: isEndLinkBellowStart
-          ? endItemDimensions.top - startItemDimensions.top + itemDimensions.top
+          ? endLink[1] - startLink[1] + itemDimensions.top
           : itemDimensions.top,
-        height: Math.abs(endLk[1] - startLk[1]) || 2,
+        height: (Math.abs(endLink[1] - startLink[1]) || 4) + ITEM_HEIGHT,
         //handle case where endPoint is 0
-        width: endLk[0] - startLk[0] || 2,
+        width: svgWidth,
         pointerEvents: "none"
       }}
     >
       <path
-        d={lineGenerator([startPoint, endPoint])}
+        //account
+        d={getPath(
+          { x: startPoint[0], y: startPoint[1] + ITEM_HEIGHT / 2 },
+          { x: endPoint[0], y: endPoint[1] + ITEM_HEIGHT / 2 }
+        )}
         stroke="red"
         strokeWidth="2"
         fill="none"
@@ -266,7 +319,8 @@ const Links = React.memo(
     getItemDimensions,
     group,
     getLayerRootProps,
-    items
+    items,
+    getGroupDimensions
   }) => {
     return (
       <div {...getLayerRootProps()}>
@@ -280,6 +334,7 @@ const Links = React.memo(
               getItemDimensions={getItemDimensions}
               group={group}
               items={items}
+              getGroupDimensions={getGroupDimensions}
             />
           );
         })}
@@ -287,3 +342,42 @@ const Links = React.memo(
     );
   }
 );
+
+function calcNormCoordinates(start, end) {
+  let cpt1 = { x: 0, y: 0 };
+  let cpt2 = { x: 0, y: 0 };
+  let middle = 0;
+  middle = start.x + (end.x - start.x) / 2;
+  cpt1 = { x: middle, y: start.y };
+  cpt2 = { x: middle, y: end.y };
+  return { cpt1: cpt1, cpt2: cpt2 };
+}
+
+function calcSCoordinates(start, end) {
+  let cpt1 = {
+    x: start.x,
+    y: start.y
+  };
+  let halfY = (end.y - start.y) / 2;
+  let cpt2 = { x: cpt1.x, y: cpt1.y + halfY };
+  let cpt3 = { x: end.x, y: cpt2.y };
+  let cpt4 = { x: cpt3.x, y: cpt3.y + halfY };
+  return { cpt1: cpt1, cpt2: cpt2, cpt3: cpt3, cpt4: cpt4 };
+}
+
+function getPath(start, end) {
+  let coordinates = null;
+  if (start.x > end.x) {
+    coordinates = calcSCoordinates(start, end);
+    return `M${start.x} ${start.y}  ${coordinates.cpt1.x} ${
+      coordinates.cpt1.y
+    } ${coordinates.cpt2.x} ${coordinates.cpt2.y} ${coordinates.cpt3.x} ${
+      coordinates.cpt3.y
+    } ${coordinates.cpt4.x} ${coordinates.cpt4.y} ${end.x} ${end.y}`;
+  } else {
+    coordinates = calcNormCoordinates(start, end);
+    return `M${start.x} ${start.y}  ${coordinates.cpt1.x} ${
+      coordinates.cpt1.y
+    } ${coordinates.cpt2.x} ${coordinates.cpt2.y} ${end.x} ${end.y}`;
+  }
+}
